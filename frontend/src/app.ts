@@ -1,86 +1,9 @@
 import { BridgeClient } from "./bridge";
-import type { BridgeApi, FetchKind, ServerPayload, Signal, Theme } from "./types";
+import { MockBridge } from "./mock_bridge";
+import { TEMPLATE } from "./template";
+import type { FetchKind, ServerPayload, Theme } from "./types";
 
-function emitter<T>(): { signal: Signal<T>; emit: (value: T) => void } {
-  const handlers = new Set<(value: T) => void>();
-  return {
-    signal: {
-      connect: (handler) => void handlers.add(handler),
-      disconnect: (handler) => void handlers.delete(handler),
-    },
-    emit: (value) => handlers.forEach((handler) => handler(value)),
-  };
-}
-
-/**
- * In-browser stand-in used by `npm run dev` (no Qt transport available).
- * Mirrors the Python bridge surface so the UI can be developed in a browser.
- */
-export class MockBridge implements BridgeApi {
-  private readonly notificationEmitter = emitter<string>();
-  private readonly themeEmitter = emitter<string>();
-  private readonly responseEmitter = emitter<string>();
-  private readonly busyEmitter = emitter<boolean>();
-  private theme: Theme = "dark";
-
-  readonly notification = this.notificationEmitter.signal;
-  readonly themeChanged = this.themeEmitter.signal;
-  readonly serverResponse = this.responseEmitter.signal;
-  readonly busyChanged = this.busyEmitter.signal;
-
-  appInfo(): string {
-    return JSON.stringify({
-      name: "python-ui-starter",
-      version: "0.1.0 (mock)",
-      serverUrl: "http://127.0.0.1:8000",
-      theme: this.theme,
-      accent: "#7c5cff",
-      qtVersion: "browser",
-    });
-  }
-
-  ping(): string {
-    return "pong";
-  }
-
-  getTheme(): string {
-    return this.theme;
-  }
-
-  log(message: string): void {
-    this.notificationEmitter.emit(`[mock] ${message}`);
-  }
-
-  setTheme(theme: string): void {
-    this.theme = theme as Theme;
-    this.themeEmitter.emit(theme);
-  }
-
-  fetchHealth(): void {
-    this.respond("health", { status: "healthy" });
-  }
-
-  fetchReady(): void {
-    this.respond("ready", { status: "ready", checks: { database: "up" } });
-  }
-
-  fetchPing(): void {
-    this.respond("ping", { message: "pong" });
-  }
-
-  fetchUuid(): void {
-    this.respond("uuid", { uuid: crypto.randomUUID() });
-  }
-
-  private respond(kind: string, data: unknown): void {
-    this.busyEmitter.emit(true);
-    window.setTimeout(() => {
-      this.responseEmitter.emit(JSON.stringify({ kind, ok: true, data }));
-      this.busyEmitter.emit(false);
-    }, 250);
-  }
-}
-
+/** Presentation + interaction layer. Rendering happens in the constructor. */
 export class App {
   private readonly root: HTMLElement;
   private bridge: BridgeClient | null = null;
@@ -144,9 +67,12 @@ export class App {
     this.log(reason);
   }
 
+  detach(): void {
+    this.unsubscribers.splice(0).forEach((unsubscribe) => unsubscribe());
+  }
+
   private toggleTheme(): void {
-    const next: Theme =
-      document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+    const next: Theme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
     if (this.bridge) {
       this.bridge.setTheme(next);
     } else {
@@ -160,10 +86,9 @@ export class App {
   }
 
   private renderResponse(payload: ServerPayload): void {
-    const label = payload.ok ? "ok" : "error";
     this.els.response.textContent = JSON.stringify(payload, null, 2);
-    this.els.response.dataset.state = label;
-    this.log(`${payload.kind}: ${label}`);
+    this.els.response.dataset.state = payload.ok ? "ok" : "error";
+    this.log(`${payload.kind}: ${payload.ok ? "ok" : "error"}`);
   }
 
   private log(message: string): void {
@@ -186,43 +111,8 @@ function must<T extends HTMLElement>(id: string): T {
 }
 
 function escapeHtml(value: string): string {
-  return value.replace(/[&<>"]/g, (char) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[char] ?? char,
+  return value.replace(
+    /[&<>"]/g,
+    (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[char] ?? char,
   );
 }
-
-const TEMPLATE = `
-<header class="topbar">
-  <div class="brand">
-    <span class="logo"></span>
-    <div>
-      <h1>python-ui-starter</h1>
-      <p id="subtitle" class="subtitle">initialising…</p>
-    </div>
-  </div>
-  <div class="actions">
-    <span id="connection" class="badge">connecting…</span>
-    <button id="theme" class="ghost">Toggle theme</button>
-  </div>
-</header>
-<main>
-  <section class="panel">
-    <h2>Backend actions</h2>
-    <div class="buttons">
-      <button data-kind="ping">Ping</button>
-      <button data-kind="health">Health</button>
-      <button data-kind="ready">Ready</button>
-      <button data-kind="uuid">UUID</button>
-    </div>
-    <p id="hint" class="hint"></p>
-    <p class="hint">Requires python-server-starter running at the configured URL.</p>
-  </section>
-  <section class="panel">
-    <h2>Response</h2>
-    <pre id="response" class="response">No response yet.</pre>
-  </section>
-  <section class="panel wide">
-    <h2>Event log</h2>
-    <ul id="log" class="log"></ul>
-  </section>
-</main>`;

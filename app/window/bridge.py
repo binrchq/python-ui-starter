@@ -13,6 +13,7 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
+from PySide6 import __version__ as pyside_version
 from PySide6.QtCore import QObject, Signal, Slot
 
 from app import __version__
@@ -49,7 +50,7 @@ class AppBridge(QObject):
                 "serverUrl": self._config.server.url,
                 "theme": self._config.ui.theme,
                 "accent": self._config.ui.accent,
-                "qtVersion": self._qt_version(),
+                "qtVersion": pyside_version,
             }
         )
 
@@ -115,11 +116,6 @@ class AppBridge(QObject):
         finally:
             self.busyChanged.emit(False)
         self.serverResponse.emit(json.dumps(payload))
-
-    def _qt_version(self) -> str:
-        from PySide6 import __version__ as pyside_version
-
-        return pyside_version
 
     def shutdown(self) -> None:
         """Stop accepting work and release the worker pool."""
