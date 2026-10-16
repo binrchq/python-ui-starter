@@ -15,6 +15,7 @@ embedded TypeScript frontend.
 6. [Tutorial: Add a native dialog](#6-tutorial-add-a-native-dialog)
 7. [Theming](#7-theming)
 8. [Packaging](#8-packaging)
+9. [Built-in desktop capabilities](#9-built-in-desktop-capabilities)
 
 ---
 
@@ -180,3 +181,30 @@ make package
 `make package` runs PyInstaller with the web assets bundled. Distribute the
 resulting `dist/python-ui-starter` directory (or build an installer with your
 tool of choice).
+
+---
+
+## 9. Built-in desktop capabilities
+
+The starter ships a set of ready-to-use desktop capabilities on the bridge —
+no extra wiring needed.
+
+| Capability | JS call | Notes |
+| :--- | :--- | :--- |
+| Native dialogs | `bridge.openFile(filters)` / `saveFile()` / `selectDirectory()` | Return `{ok, path}` |
+| Clipboard | `bridge.readClipboard()` / `writeClipboard(text)` | Via `QClipboard` |
+| Open external URL | `bridge.openUrl(url)` | http(s) / mailto only |
+| Window control | `bridge.setAlwaysOnTop(b)` / `toggleFullScreen()` | Emits `windowStateChanged` |
+| System info | `bridge.systemInfo()` | platform, CPU, Python/Qt versions, cwd |
+| Settings | `bridge.getSetting(k)` / `setSetting(k, v)` | Persisted with `QSettings` |
+| Runtime backend switch | `bridge.setServerUrl(url)` | Reconfigures the `ApiClient` |
+| Generic request | `bridge.request(method, path, payload)` | Any endpoint on the base URL |
+| Health watchdog | `bridge.startHealthPolling(ms)` / `stopHealthPolling()` | Emits `connectionChanged` |
+
+Native commands from the menu bar (File / View / Help) call the same bridge
+slots, so menu and frontend stay in sync. Window geometry and the chosen theme
+are persisted between runs.
+
+Extending it is symmetric: add a `@Slot` in `app/window/bridge.py`, then a typed
+wrapper in `frontend/src/bridge.ts` (and the mock in `mock_bridge.ts`), and call
+it from `app.ts` or the fallback `index.js`.

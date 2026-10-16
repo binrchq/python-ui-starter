@@ -22,8 +22,8 @@ def test_index_html_references_scripts_and_styles() -> None:
 def test_index_js_calls_bridge() -> None:
     script = (WEB_ROOT / "index.js").read_text(encoding="utf-8")
     assert "QWebChannel" in script
-    assert "fetchHealth" in script or "fetch" in script
-    assert "setTheme" in script
+    for capability in ("fetch", "setTheme", "systemInfo", "openFile", "startHealthPolling"):
+        assert capability in script
 
 
 def test_qwebchannel_is_vendored() -> None:

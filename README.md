@@ -22,7 +22,9 @@ through a typed, promise-friendly bridge.
 - **Embedded TypeScript + Vite frontend** built straight into `app/resources/web`.
 - **Custom `app://` scheme handler** — secure origin, ES-module support, no local HTTP server required.
 - **Typed QWebChannel bridge** exposing Python `@Slot`s and `Signal`s, with a TypeScript wrapper that returns promises.
-- **Non-blocking backend calls** — requests to `python-server-starter` run on a worker thread and stream results back via signals.
+- **Native desktop capabilities** — file/folder dialogs, clipboard, open external URL, always-on-top / full-screen, system info, and persisted settings (`QSettings`).
+- **Backend integration** — typed health/ready/ping/uuid helpers plus a generic `request(method, path, body)`, all off the UI thread, with optional health polling.
+- **Native menu bar & shortcuts** (File / View / Help) and window geometry persistence.
 - **Dependency-free fallback bundle** so the app runs immediately, before Node is installed.
 - **Vite dev-server mode** (`--dev`) for hot reload during frontend development.
 - **Layered, testable structure**: `config` → `services` → `bridge` → `window` → `view`.
@@ -135,23 +137,44 @@ ui:
 Registered as the `bridge` object on the QWebChannel. See
 `app/window/bridge.py` and `frontend/src/bridge.ts`.
 
-| Direction | Member | Description |
+### Slots (JS → Python)
+
+| Member | Returns | Description |
 | :--- | :--- | :--- |
-| JS → Python (slot) | `appInfo() -> string` | JSON metadata (name, version, server URL, theme, Qt version) |
-| JS → Python (slot) | `ping() -> string` | In-process liveness check |
-| JS → Python (slot) | `getTheme() -> string` | Current theme |
-| JS → Python (slot) | `setTheme(theme)` | Switch theme (`dark`/`light`) |
-| JS → Python (slot) | `log(message)` | Log a frontend message |
-| JS → Python (slot) | `fetchHealth()` / `fetchReady()` / `fetchPing()` / `fetchUuid()` | Call the backend off-thread |
-| Python → JS (signal) | `notification(string)` | User-facing notification text |
-| Python → JS (signal) | `serverResponse(string)` | JSON payload for a backend call |
-| Python → JS (signal) | `themeChanged(string)` | Theme was changed |
-| Python → JS (signal) | `busyChanged(bool)` | Backend request in flight |
+| `appInfo()` | JSON | name, version, server URL, theme, Qt version |
+| `systemInfo()` | JSON | platform, CPU, Python/Qt versions, PID, cwd, memory |
+| `ping()` | `"pong"` | In-process liveness check |
+| `getTheme()` / `setTheme(theme)` | — | Read / switch theme (`dark` / `light`) |
+| `getSetting(key)` / `setSetting(k, v)` | `string` | Persisted settings via `QSettings` |
+| `readClipboard()` / `writeClipboard(text)` | `string` | Clipboard access |
+| `openFile(filters)` / `saveFile(name)` / `selectDirectory()` | JSON `{ok, path}` | Native dialogs |
+| `openUrl(url)` | — | Open an http(s)/mailto URL externally |
+| `setServerUrl(url)` | — | Repoint the backend client at runtime |
+| `showNotification(title, message)` | — | Emit a user-facing notification |
+| `log(message)` | — | Log a frontend message |
+| `isFullScreen()` / `setFullScreen(b)` / `toggleFullScreen()` | `bool` | Window control |
+| `setAlwaysOnTop(b)` | — | Window control |
+| `fetchHealth()` / `fetchReady()` / `fetchPing()` / `fetchUuid()` | — | Typed backend calls (off-thread) |
+| `request(method, path, payloadJson)` | — | Generic backend call |
+| `startHealthPolling(ms)` / `stopHealthPolling()` | — | Connection watchdog |
+
+### Signals (Python → JS)
+
+| Signal | Payload | Description |
+| :--- | :--- | :--- |
+| `notification` | `string` | User-facing notification text |
+| `serverResponse` | `string` | JSON payload for a backend call |
+| `themeChanged` | `string` | Theme was changed |
+| `busyChanged` | `bool` | Backend request in flight |
+| `connectionChanged` | `bool` | Health poll result |
+| `windowStateChanged` | `string` | JSON `{fullScreen, alwaysOnTop}` |
 
 ```ts
 const bridge = await initBridge();
-bridge.notify("hello from the UI");
+bridge.showNotification("Hello", "from the UI");
 bridge.fetch("health");
+bridge.request("GET", "/api/public/time");
+const picked = bridge.openFile("Images (*.png *.jpg);;All (*)");
 bridge.onServerResponse((payload) => console.log(payload));
 ```
 

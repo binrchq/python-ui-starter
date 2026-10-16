@@ -58,6 +58,8 @@ def main(argv: list[str] | None = None) -> int:
 
     qt_argv = list(sys.argv) if argv is None else ["python-ui-starter", *argv]
     app = QApplication.instance() or QApplication(qt_argv)
+    app.setOrganizationName("BINRC")
+    app.setOrganizationDomain("binr.ch")
     app.setApplicationName("python-ui-starter")
     app.setApplicationVersion(__version__)
 
