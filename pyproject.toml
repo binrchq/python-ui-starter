@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "python-ui-starter"
+version = "0.1.0"
+description = "A Qt6 (PySide6) desktop scaffold with an embedded TypeScript frontend bridged over QWebChannel."
+readme = "README.md"
+requires-python = ">=3.10,<3.14"
+license = { text = "MIT" }
+authors = [{ name = "BINRC" }]
+keywords = ["qt6", "pyside6", "qwebchannel", "typescript", "vite", "desktop", "starter"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Environment :: X11 Applications :: Qt",
+    "License :: OSI Approved :: MIT License",
+]
+
+dependencies = [
+    "PySide6>=6.6",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "PyYAML>=6.0",
+    "httpx>=0.27",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2",
+    "pytest-qt>=4.4",
+    "ruff>=0.5",
+]
+package = ["pyinstaller>=6.6"]
+
+[project.scripts]
+python-ui-starter = "app.main:main"
+pus = "app.main:main"
+
+[project.urls]
+Homepage = "https://github.com/binrchq/python-ui-starter"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.setuptools.package-data]
+app = ["resources/web/**/*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-exclude = ["frontend", "app/resources/web"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "W"]
+ignore = ["B008", "E501"]

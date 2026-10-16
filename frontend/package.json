@@ -1,0 +1,19 @@
+{
+  "name": "python-ui-starter-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Embedded TypeScript frontend for python-ui-starter (Qt6 + QWebChannel).",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "qwebchannel": "^6.2.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "vite": "^5.4.0"
+  }
+}

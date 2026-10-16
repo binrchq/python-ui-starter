@@ -1,0 +1,24 @@
+# python-ui-starter configuration
+#
+# Override any value with an environment variable using the UI__ delimiter,
+# e.g. UI__SERVER__URL=http://10.0.0.5:8000
+
+server:
+  url: http://127.0.0.1:8000
+  timeout: 5.0
+
+frontend:
+  # Set to "http://localhost:5173" to load the Vite dev server instead of the
+  # bundled assets (also enabled with `python -m app --dev`).
+  dev_url: null
+
+window:
+  title: python-ui-starter
+  width: 1200
+  height: 800
+  min_width: 900
+  min_height: 600
+
+ui:
+  theme: dark       # dark | light
+  accent: "#7c5cff"
